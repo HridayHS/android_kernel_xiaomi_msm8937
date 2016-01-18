@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016, The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -358,8 +358,8 @@ VOS_STATUS wlan_hdd_cancel_existing_remain_on_channel(hdd_adapter_t *pAdapter)
             }
             else
                 pRemainChanCtx->hdd_remain_on_chan_cancel_in_progress = TRUE;
-            mutex_unlock(&pHddCtx->roc_lock);
             INIT_COMPLETION(pAdapter->cancel_rem_on_chan_var);
+            mutex_unlock(&pHddCtx->roc_lock);
 
             /* Issue abort remain on chan request to sme.
              * The remain on channel callback will make sure the remain_on_chan
@@ -481,8 +481,8 @@ void wlan_hdd_remain_on_chan_timeout(void *data)
     }
 
     pRemainChanCtx->hdd_remain_on_chan_cancel_in_progress = TRUE;
-    mutex_unlock(&pHddCtx->roc_lock);
     INIT_COMPLETION(pAdapter->cancel_rem_on_chan_var);
+    mutex_unlock(&pHddCtx->roc_lock);
     hddLog( LOG1,"%s: Cancel Remain on Channel on timeout", __func__);
     if ( ( WLAN_HDD_INFRA_STATION == pAdapter->device_mode ) ||
           ( WLAN_HDD_P2P_CLIENT == pAdapter->device_mode ) ||
@@ -502,6 +502,9 @@ void wlan_hdd_remain_on_chan_timeout(void *data)
         WLANSAP_CancelRemainOnChannel(
                 (WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
     }
+
+    wlan_hdd_start_stop_tdls_source_timer(pHddCtx, eTDLS_SUPPORT_ENABLED);
+
     hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_ROC);
 }
 
@@ -656,6 +659,8 @@ static int wlan_hdd_p2p_start_remain_on_channel(
         }
 
     }
+
+    wlan_hdd_start_stop_tdls_source_timer(pHddCtx, eTDLS_SUPPORT_DISABLED);
 
     pAdapter->is_roc_inprogress = TRUE;
     EXIT();
@@ -1096,8 +1101,8 @@ int __wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
         else
             pRemainChanCtx->hdd_remain_on_chan_cancel_in_progress = TRUE;
     }
-    mutex_unlock(&pHddCtx->roc_lock);
     INIT_COMPLETION(pAdapter->cancel_rem_on_chan_var);
+    mutex_unlock(&pHddCtx->roc_lock);
     /* Issue abort remain on chan request to sme.
      * The remain on channel callback will make sure the remain_on_chan
      * expired event is sent.

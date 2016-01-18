@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -263,10 +263,24 @@
 #define CFG_ENABLE_AUTO_BMPS_TIMER_MIN         ( 0 )
 #define CFG_ENABLE_AUTO_BMPS_TIMER_MAX         ( 1 )
 #define CFG_ENABLE_AUTO_BMPS_TIMER_DEFAULT     ( 1 )
-
+/*
+ * gEnableDynamicRAstartRate usage:
+ *
+ * 11B and 11A/G rates can be specified in multiples of 0.5
+ * So for 5.5 mbps, gEnableDynamicRAstartRate=11
+ * and for 12 mbps, gEnableDynamicRAstartRate=24 etc.
+ *
+ * for MCS 0 - 7 rates, Bit 7 should set to 1 and Bit 0-6
+ * represent the MCS index.
+ * So for MCS0, gEnableDynamicRAstartRate=128
+ * and for MCS2, gEnableDynamicRAstartRate=130 etc.
+ *
+ * Any invalid non-zero value will set the start rate
+ * to 6 mbps (value 1 will also set it to 6 mbps)
+ */
 #define CFG_ENABLE_DYNAMIC_RA_START_RATE_NAME    "gEnableDynamicRAstartRate"
 #define CFG_ENABLE_DYNAMIC_RA_START_RATE_MIN     ( 0 )
-#define CFG_ENABLE_DYNAMIC_RA_START_RATE_MAX     ( 1 )
+#define CFG_ENABLE_DYNAMIC_RA_START_RATE_MAX     ( 300 )
 #define CFG_ENABLE_DYNAMIC_RA_START_RATE_DEFAULT ( 0 )
 
 /* Bit mask value to enable RTS/CTS for different modes
@@ -1941,6 +1955,12 @@ static __inline tANI_U32 defHddRateToDefCfgRate( tANI_U32 defRateIndex )
 #define CFG_TDLS_SCAN_ENABLE_MIN        (0)
 #define CFG_TDLS_SCAN_ENABLE_MAX        (2)
 #define CFG_TDLS_SCAN_ENABLE_DEFAULT    (0)
+
+#define CFG_TDLS_ENABLE_DEFER_TIMER           "gTDLSEnableDeferTime"
+#define CFG_TDLS_ENABLE_DEFER_TIMER_MIN       (2000)
+#define CFG_TDLS_ENABLE_DEFER_TIMER_MAX       (6000)
+#define CFG_TDLS_ENABLE_DEFER_TIMER_DEFAULT   (5000)
+
 #endif
 
 #ifdef WLAN_FEATURE_LINK_LAYER_STATS
@@ -2621,6 +2641,11 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_WIFI_CONFIG_MAX                          (1)
 #define CFG_WIFI_CONFIG_DEFAULT                      (1)
 
+#define CFG_MAXCHAN_FOR_CHANTIME_CORR_NAME       "gMaxChannelForMoreDwellTime"
+#define CFG_MAXCHAN_FOR_CHANTIME_CORR_MIN        (0)
+#define CFG_MAXCHAN_FOR_CHANTIME_CORR_MAX        (35)
+#define CFG_MAXCHAN_FOR_CHANTIME_CORR_DEFAULT    (10)
+
 
 /*--------------------------------------------------------------------------- 
   Type declarations
@@ -3149,6 +3174,8 @@ typedef struct
    v_BOOL_t                    crash_inject_enabled;
    v_U32_t                     enable_delack;
    v_BOOL_t                    disableBarWakeUp;
+   v_U8_t                      max_chan_for_dwell_time_cfg;
+   v_U16_t                     tdls_enable_defer_time;
 } hdd_config_t;
 
 /*--------------------------------------------------------------------------- 

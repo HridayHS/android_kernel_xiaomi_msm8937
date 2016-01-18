@@ -598,6 +598,7 @@ typedef enum
     eCSR_ROAM_RESULT_TEARDOWN_TDLS_PEER_IND,
     eCSR_ROAM_RESULT_DELETE_ALL_TDLS_PEER_IND,
     eCSR_ROAM_RESULT_LINK_ESTABLISH_REQ_RSP,
+    eCSR_ROAM_RESULT_CHANNEL_SWITCH_REQ_RSP,
 #endif
 
 }eCsrRoamResult;
@@ -1195,6 +1196,7 @@ typedef struct tagCsrConfigParam
     tANI_BOOLEAN ignorePeerHTopMode;
     tANI_BOOLEAN disableP2PMacSpoofing;
     tANI_BOOLEAN enableFatalEvent;
+    tANI_U8 max_chan_for_dwell_time_cfg;
 }tCsrConfigParam;
 
 //Tush
