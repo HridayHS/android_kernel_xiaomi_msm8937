@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -471,11 +471,10 @@ tSmeCmd *smeGetCommandBuffer( tpAniSirGlobal pMac )
             vos_fatal_event_logs_req(WLAN_LOG_TYPE_FATAL,
                     WLAN_LOG_INDICATOR_HOST_DRIVER,
                     WLAN_LOG_REASON_SME_OUT_OF_CMD_BUF,
-                    FALSE, TRUE);
+                    FALSE, FALSE);
         }
         else
         {
-           vosTraceDumpAll(pMac,0,0,0,0);
            /* Trigger SSR */
            vos_wlanRestart();
         }
@@ -12037,6 +12036,8 @@ void activeListCmdTimeoutHandle(void *userData)
 {
     tHalHandle hHal= (tHalHandle) userData;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    tListElem *pEntry;
+    tSmeCmd *pTempCmd = NULL;
 
     if (NULL == pMac)
     {
@@ -12057,12 +12058,27 @@ void activeListCmdTimeoutHandle(void *userData)
 
     vos_state_info_dump_all();
 
+
+    pEntry = csrLLPeekHead(&pMac->sme.smeCmdActiveList, LL_ACCESS_LOCK);
+    if (pEntry) {
+        pTempCmd = GET_BASE_ADDR(pEntry, tSmeCmd, Link);
+    }
+    /* If user initiated scan took more than active list timeout
+     * abort it.
+     */
+    if (pTempCmd && (eSmeCommandScan == pTempCmd->command) &&
+        (eCsrScanUserRequest == pTempCmd->u.scanCmd.reason)) {
+        sme_AbortMacScan(hHal, pTempCmd->sessionId,
+                                 eCSR_SCAN_ABORT_DEFAULT);
+        return;
+    }
+
     if (pMac->roam.configParam.enableFatalEvent)
     {
        vos_fatal_event_logs_req(WLAN_LOG_TYPE_FATAL,
                   WLAN_LOG_INDICATOR_HOST_DRIVER,
                   WLAN_LOG_REASON_SME_COMMAND_STUCK,
-                  FALSE, TRUE);
+                  FALSE, FALSE);
     }
     else
     {
@@ -12070,7 +12086,6 @@ void activeListCmdTimeoutHandle(void *userData)
        if (!(vos_isLoadUnloadInProgress() ||
            vos_is_logp_in_progress(VOS_MODULE_ID_SME, NULL)))
        {
-          vosTraceDumpAll(pMac,0,0,0,0);
           vos_wlanRestart();
        }
     }
@@ -13009,7 +13024,7 @@ eHalStatus sme_EXTScanRegisterCallback (tHalHandle hHal,
 
 #ifdef FEATURE_OEM_DATA_SUPPORT
 eHalStatus sme_OemDataRegisterCallback (tHalHandle hHal,
-                          void (*pOemDataIndCb)(void *, const tANI_U16, void *),
+                void (*pOemDataIndCb)(void *, const tANI_U16, void *, tANI_U32),
                           void *callbackContext)
 {
     eHalStatus status    = eHAL_STATUS_SUCCESS;
@@ -13453,9 +13468,9 @@ eHalStatus sme_fatal_event_logs_req(tHalHandle hHal, tANI_U32 is_fatal,
     VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
     tpSirFatalEventLogsReqParam pFatalEventLogsReqParams;
 
-    /* Dump all VosTrace */
+    /* Dump last 500 VosTrace */
     if (dump_vos_trace)
-       vosTraceDumpAll(pMac,0,0,0,0);
+       vosTraceDumpAll(pMac, 0, 0, 500, 0);
 
     if (WLAN_LOG_INDICATOR_HOST_ONLY == indicator)
     {
@@ -13465,14 +13480,16 @@ eHalStatus sme_fatal_event_logs_req(tHalHandle hHal, tANI_U32 is_fatal,
 
     if ( eHAL_STATUS_SUCCESS ==  sme_AcquireGlobalLock( &pMac->sme ))
     {
-        pFatalEventLogsReqParams = vos_mem_malloc(sizeof(tSirFatalEventLogsReqParam));
+        pFatalEventLogsReqParams =
+                            vos_mem_malloc(sizeof(*pFatalEventLogsReqParams));
         if(NULL == pFatalEventLogsReqParams)
         {
             smsLog(pMac, LOGE,
                  FL("vos_mem_alloc failed "));
             return eHAL_STATUS_FAILED_ALLOC;
         }
-        vos_mem_set(pFatalEventLogsReqParams, sizeof(pFatalEventLogsReqParams), 0);
+        vos_mem_set(pFatalEventLogsReqParams,
+                    sizeof(*pFatalEventLogsReqParams), 0);
         pFatalEventLogsReqParams->reason_code = reason_code;
 
         vos_mem_zero(&msg, sizeof(vos_msg_t));

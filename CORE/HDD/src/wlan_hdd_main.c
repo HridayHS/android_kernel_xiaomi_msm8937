@@ -4003,14 +4003,14 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
        }
        else if (strncmp(command, "SCAN-ACTIVE", 11) == 0)
        {
-           VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                              FL("making default scan to ACTIVE"));
+           hddLog(LOG1,
+                FL("making default scan to ACTIVE"));
            pHddCtx->scan_info.scan_mode = eSIR_ACTIVE_SCAN;
        }
        else if (strncmp(command, "SCAN-PASSIVE", 12) == 0)
        {
-           VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                              FL("making default scan to PASSIVE"));
+           hddLog(LOG1,
+                FL("making default scan to PASSIVE"));
            pHddCtx->scan_info.scan_mode = eSIR_PASSIVE_SCAN;
        }
        else if (strncmp(command, "GETDWELLTIME", 12) == 0)
@@ -8978,9 +8978,10 @@ free_hdd_ctx:
        pHddCtx->cfg_ini= NULL;
    }
 
-   /* FTM mode, WIPHY did not registered
+   /* FTM/MONITOR mode, WIPHY did not registered
       If un-register here, system crash will happen */
-   if (VOS_FTM_MODE != hdd_get_conparam())
+   if (!(VOS_FTM_MODE == hdd_get_conparam() ||
+            VOS_MONITOR_MODE == hdd_get_conparam()))
    {
       wiphy_unregister(wiphy) ;
       hdd_wlan_free_wiphy_channels(wiphy);
@@ -10676,6 +10677,8 @@ int hdd_wlan_startup(struct device *dev )
    sme_UpdateChannelList(pHddCtx->hHal);
 
    /* Fwr capabilities received, Set the Dot11 mode */
+   sme_SetPhyMode(WLAN_HDD_GET_HAL_CTX(pAdapter),
+       hdd_cfg_xlate_to_csr_phy_mode(pHddCtx->cfg_ini->dot11Mode));
    sme_SetDefDot11Mode(pHddCtx->hHal);
 
 #ifndef CONFIG_ENABLE_LINUX_REG

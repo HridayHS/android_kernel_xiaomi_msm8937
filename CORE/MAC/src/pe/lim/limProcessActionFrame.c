@@ -1317,8 +1317,8 @@ __limProcessAddBAReq( tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
     if (!(IS_HWSTA_IDX(pSta->staIndex)))
     {
         status = eSIR_MAC_REQ_DECLINED_STATUS;
-        limLog( pMac, LOGE,
-            FL( "Sta Id is not HW Sta Id, Status code is %d " ), status);
+        limLog( pMac, LOG1,
+            FL( "ta Id is not HW Sta Id, Status code is %d " ), status);
         goto returnAfterError;
     }
 #endif //WLAN_SOFTAP_VSTA_FEATURE
@@ -1529,7 +1529,8 @@ tANI_U8 *pBody;
   if(eSIR_SUCCESS != limSearchAndDeleteDialogueToken(pMac, frmAddBARsp.DialogToken.token,
         pSta->assocId, frmAddBARsp.AddBAParameterSet.tid))
   {
-      PELOGW(limLog(pMac, LOGE, FL("dialogueToken in received addBARsp did not match with outstanding requests"));)
+      limLog(pMac, LOGE,
+        FL("dialogueToken in received addBARsp did not match with outstanding requests"));
       return;
   }
 

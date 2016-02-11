@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -973,7 +973,7 @@ VOS_STATUS wlan_hdd_get_frame_logs(hdd_adapter_t *pAdapter, v_U8_t flag)
    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
    if (!pHddCtx->mgmt_frame_logging)
    {
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Frame Logging not init!", __func__);
+      hddLog(LOGW, FL("Frame Logging not init!"));
       return VOS_STATUS_E_AGAIN;
    }
 
@@ -4186,15 +4186,15 @@ static int __iw_set_priv(struct net_device *dev,
     }
     else if (strcasecmp(cmd, "scan-active") == 0)
     {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-                   FL("making default scan to active"));
+        hddLog(LOG1,
+                FL("making default scan to active"));
         pHddCtx->scan_info.scan_mode = eSIR_ACTIVE_SCAN;
         ret = snprintf(cmd, cmd_len, "OK");
     }
     else if (strcasecmp(cmd, "scan-passive") == 0)
     {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-                   FL("making default scan to passive"));
+        hddLog(LOG1,
+               FL("making default scan to passive"));
         pHddCtx->scan_info.scan_mode = eSIR_PASSIVE_SCAN;
         ret = snprintf(cmd, cmd_len, "OK");
     }
@@ -7498,25 +7498,27 @@ void hdd_wmm_tx_snapshot(hdd_adapter_t *pAdapter)
         return;
     }
 
-    for(i =0; i< HDD_MAX_NUM_IBSS_STA; i++)
-   {
-        if(pPeerInfo->ibssStaInfo[i].isUsed)
-        {
-             hddLog(LOGE, "******IBSS STAIndex: %d*********", i);
-             for ( j=0; j< NUM_TX_QUEUES; j++)
-             {
-                spin_lock_bh(&pPeerInfo->ibssStaInfo[i].wmm_tx_queue[j].lock);
-                hddLog(LOGE, "HDD TxQueue Info For AC: %d Count: %d PrevAdress:%p, NextAddress:%p",
-                       j, pPeerInfo->ibssStaInfo[i].wmm_tx_queue[j].count,
-                       pPeerInfo->ibssStaInfo[i].wmm_tx_queue[j].anchor.prev,
-                       pPeerInfo->ibssStaInfo[i].wmm_tx_queue[j].anchor.next);
-                spin_unlock_bh(&pPeerInfo->ibssStaInfo[i].wmm_tx_queue[j].lock);
-             }
+    for (i = 0; i < HDD_MAX_NUM_IBSS_STA; i++) {
+        if (pPeerInfo->ibssStaInfo[i].isUsed) {
+            hddLog(LOGE, "******IBSS STAIndex: %d*********", i);
+            for (j = 0; j < NUM_TX_QUEUES; j++) {
+                if (pPeerInfo->ibssStaInfo[i].wmm_tx_queue[j].count) {
+                    spin_lock_bh(
+                        &pPeerInfo->ibssStaInfo[i].wmm_tx_queue[j].lock);
+                    hddLog(LOGE,
+                        "HDD TxQueue Info For AC: %d Count: %d PrevAdress:%p, NextAddress:%p",
+                        j, pPeerInfo->ibssStaInfo[i].wmm_tx_queue[j].count,
+                        pPeerInfo->ibssStaInfo[i].wmm_tx_queue[j].anchor.prev,
+                        pPeerInfo->ibssStaInfo[i].wmm_tx_queue[j].anchor.next);
+                    spin_unlock_bh(
+                        &pPeerInfo->ibssStaInfo[i].wmm_tx_queue[j].lock);
+                }
+            }
         }
     }
 
-
 }
+
 static int __iw_set_var_ints_getnone(struct net_device *dev,
                                      struct iw_request_info *info,
                                      union iwreq_data *wrqu, char *extra)

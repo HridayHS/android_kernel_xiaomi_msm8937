@@ -189,7 +189,7 @@ static placeHolderInCapBitmap supportEnabledFeatures[] =
    ,DYNAMIC_WMM_PS                 //43
 
    ,MAC_SPOOFED_SCAN               //44
-   ,FEATURE_NOT_SUPPORTED          //45
+   ,BMU_ERROR_GENERIC_RECOVERY     //45
    ,DISA                           //46
    ,FW_STATS                       //47
    ,WPS_PRBRSP_TMPL                //48
@@ -16678,7 +16678,7 @@ WDI_ProcessInitScanRsp
         WDI_ASSERT(0);
     }
   }
-  else
+  else if (WDI_STATUS_SUCCESS != wdiStatus)
   {
      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
                "Error returned WDI_ProcessInitScanRspi:%d BMPS%d",
@@ -36657,9 +36657,10 @@ WDI_ProcessStartOemDataRspIndNew
     /* Fill in the indication parameters */
     wdiInd.wdiIndicationType = WDI_START_OEM_DATA_RSP_IND_NEW;
 
-    /* extract response and send it to UMAC */
-    wdiInd.wdiIndicationData.pOemRspNewIndData = (void *)pEventData->pEventData;
-
+    wdiInd.wdiIndicationData.wdiOemDataRspNew.pOemRspNewIndData =
+                                                (void *)pEventData->pEventData;
+    wdiInd.wdiIndicationData.wdiOemDataRspNew.OemRspNewLen =
+                                                    pEventData->uEventDataSize;
     /* Notify UMAC */
     if (pWDICtx->wdiLowLevelIndCB)
     {
