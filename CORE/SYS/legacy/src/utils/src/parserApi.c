@@ -3079,14 +3079,19 @@ sirFillBeaconMandatoryIEforEseBcnReport(tpAniSirGlobal   pMac,
            retStatus = eSIR_FAILURE;
            goto err_bcnrep;
        }
-       *pos = SIR_MAC_RATESET_EID;
-       pos++;
-       *pos = eseBcnReportMandatoryIe.supportedRates.numRates;
-       pos++;
-       vos_mem_copy(pos, (tANI_U8*)eseBcnReportMandatoryIe.supportedRates.rate,
-                    eseBcnReportMandatoryIe.supportedRates.numRates);
-       pos += eseBcnReportMandatoryIe.supportedRates.numRates;
-       freeBytes -= (1 + 1 + eseBcnReportMandatoryIe.supportedRates.numRates);
+       if (eseBcnReportMandatoryIe.supportedRates.numRates <=
+             SIR_MAC_RATESET_EID_MAX) {
+           *pos = SIR_MAC_RATESET_EID;
+           pos++;
+           *pos = eseBcnReportMandatoryIe.supportedRates.numRates;
+           pos++;
+           vos_mem_copy(pos,
+                        (tANI_U8*)eseBcnReportMandatoryIe.supportedRates.rate,
+                        eseBcnReportMandatoryIe.supportedRates.numRates);
+           pos += eseBcnReportMandatoryIe.supportedRates.numRates;
+           freeBytes -= (1 + 1 +
+                         eseBcnReportMandatoryIe.supportedRates.numRates);
+       }
     }
 
     /* Fill FH Parameter set IE */
@@ -4339,7 +4344,7 @@ sirConvertMeasReqFrame2Struct(tpAniSirGlobal             pMac,
     tANI_U32                       status;
 
     // Zero-init our [out] parameter,
-    vos_mem_set( ( tANI_U8* )pMeasReqFrame, sizeof(tpSirMacMeasReqActionFrame), 0 );
+    vos_mem_set( ( tANI_U8* )pMeasReqFrame, sizeof(*pMeasReqFrame), 0 );
 
     // delegate to the framesc-generated code,
     status = dot11fUnpackMeasurementRequest( pMac, pFrame, nFrame, &mr );

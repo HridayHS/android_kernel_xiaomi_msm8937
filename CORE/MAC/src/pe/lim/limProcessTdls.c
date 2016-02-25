@@ -738,7 +738,8 @@ tSirRetStatus limSendTdlsDisReqFrame(tpAniSirGlobal pMac, tSirMacAddr peer_mac,
                             TID_AC_VI,
                             limTxComplete, pFrame,
                             limMgmtTXComplete,
-                            HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME,
+                            HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME |
+                                HAL_USE_PEER_STA_REQUESTED_MASK,
                             pMac->lim.txBdToken++);
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
@@ -1329,7 +1330,8 @@ tSirRetStatus limSendTdlsLinkSetupReqFrame(tpAniSirGlobal pMac,
                             TID_AC_VI,
                             limTxComplete, pFrame,
                             limMgmtTXComplete,
-                            HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME,
+                            HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME |
+                                HAL_USE_PEER_STA_REQUESTED_MASK,
                             pMac->lim.txBdToken++);
 
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
@@ -1538,7 +1540,8 @@ tSirRetStatus limSendTdlsTeardownFrame(tpAniSirGlobal pMac,
                             TID_AC_VI,
                             limTxComplete, pFrame,
                             limMgmtTXComplete,
-                            HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME,
+                            HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME |
+                                HAL_USE_PEER_STA_REQUESTED_MASK,
                             pMac->lim.txBdToken++);
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
@@ -1801,7 +1804,8 @@ static tSirRetStatus limSendTdlsSetupRspFrame(tpAniSirGlobal pMac,
                             TID_AC_VI,
                             limTxComplete, pFrame,
                             limMgmtTXComplete,
-                            HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME,
+                            HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME |
+                                HAL_USE_PEER_STA_REQUESTED_MASK,
                             pMac->lim.txBdToken++);
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
@@ -2050,7 +2054,8 @@ tSirRetStatus limSendTdlsLinkSetupCnfFrame(tpAniSirGlobal pMac, tSirMacAddr peer
                             TID_AC_VI,
                             limTxComplete, pFrame, 
                             limMgmtTXComplete,
-                            HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME,
+                            HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME |
+                                HAL_USE_PEER_STA_REQUESTED_MASK,
                             pMac->lim.txBdToken++);
 
 
@@ -3776,7 +3781,7 @@ tSirRetStatus limProcesSmeTdlsChanSwitchReq(tpAniSirGlobal pMac,
         return eSIR_MEM_ALLOC_FAILED;
     }
 
-    vos_mem_set( (tANI_U8 *)pMsgTdlsChanSwitch, sizeof(tpTdlsChanSwitchParams), 0);
+    vos_mem_set( (tANI_U8 *)pMsgTdlsChanSwitch, sizeof(*pMsgTdlsChanSwitch), 0);
 
     /* if channel bw offset is not set,
        send maximum supported offset in the band */

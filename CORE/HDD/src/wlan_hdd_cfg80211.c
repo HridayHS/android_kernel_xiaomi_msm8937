@@ -7212,6 +7212,8 @@ static int wlan_hdd_cfg80211_get_link_properties(struct wiphy *wiphy,
 #define PARAM_MODULATED_DTIM QCA_WLAN_VENDOR_ATTR_CONFIG_MODULATED_DTIM
 #define PARAM_STATS_AVG_FACTOR QCA_WLAN_VENDOR_ATTR_CONFIG_STATS_AVG_FACTOR
 #define PARAM_GUARD_TIME QCA_WLAN_VENDOR_ATTR_CONFIG_GUARD_TIME
+#define PARAM_BCNMISS_PENALTY_PARAM_COUNT \
+        QCA_WLAN_VENDOR_ATTR_CONFIG_PENALIZE_AFTER_NCONS_BEACON_MISS
 
 /**
  * __wlan_hdd_cfg80211_wifi_configuration_set() - Wifi configuration
@@ -7238,12 +7240,15 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
     hdd_station_ctx_t *pHddStaCtx;
     struct nlattr *tb[PARAM_WIFICONFIG_MAX + 1];
     tpSetWifiConfigParams pReq;
+    tModifyRoamParamsReqParams modifyRoamParamsReq;
     eHalStatus status;
     int ret_val;
     static const struct nla_policy policy[PARAM_WIFICONFIG_MAX + 1] = {
                         [PARAM_STATS_AVG_FACTOR] = { .type = NLA_U16 },
                         [PARAM_MODULATED_DTIM] = { .type = NLA_U32 },
-                       [PARAM_GUARD_TIME] = { .type = NLA_U32},
+                        [PARAM_GUARD_TIME] = { .type = NLA_U32},
+                        [PARAM_BCNMISS_PENALTY_PARAM_COUNT] =
+                                             { .type = NLA_U32},
     };
 
     ENTER();
@@ -7260,11 +7265,6 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 
     pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
 
-    if (!hdd_connIsConnected(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))) {
-                hddLog(LOGE, FL("Not in Connected state!"));
-                return -ENOTSUPP;
-    }
-
     if (nla_parse(tb, PARAM_WIFICONFIG_MAX, data, data_len, policy)) {
                hddLog(LOGE, FL("Invalid ATTR"));
                return -EINVAL;
@@ -7279,7 +7279,29 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
         return -EINVAL;
     }
 
-   pReq = vos_mem_malloc(sizeof(tSetWifiConfigParams));
+    if (tb[PARAM_BCNMISS_PENALTY_PARAM_COUNT]) {
+        modifyRoamParamsReq.param = WIFI_CONFIG_SET_BCNMISS_PENALTY_COUNT;
+        modifyRoamParamsReq.value =
+        nla_get_u32(tb[PARAM_BCNMISS_PENALTY_PARAM_COUNT]);
+
+        if (eHAL_STATUS_SUCCESS !=
+                sme_setBcnMissPenaltyCount(pHddCtx->hHal,&modifyRoamParamsReq))
+        {
+            hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Failed", __func__);
+            ret_val = -EINVAL;
+        }
+        return ret_val;
+    }
+
+    /* Moved this down in order to provide provision to set beacon
+     * miss penalty count irrespective of connection state.
+     */
+    if (!hdd_connIsConnected(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))) {
+                hddLog(LOGE, FL("Not in Connected state!"));
+                return -ENOTSUPP;
+    }
+
+    pReq = vos_mem_malloc(sizeof(tSetWifiConfigParams));
 
     if (!pReq) {
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
@@ -17866,7 +17888,8 @@ static int __wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy, struct net_device 
             {
                 VOS_STATUS status;
                 long ret;
-                tCsrTdlsLinkEstablishParams tdlsLinkEstablishParams;
+                tCsrTdlsLinkEstablishParams tdlsLinkEstablishParams = { {0}, 0,
+                                                0, 0, 0, 0, 0, 0, {0}, 0, {0} };
                 WLAN_STADescType         staDesc;
                 tANI_U16 numCurrTdlsPeers = 0;
                 hddTdlsPeer_t *connPeer = NULL;
@@ -19258,6 +19281,56 @@ void wlan_hdd_cfg80211_oemdata_callback(void *ctx, const tANI_U16 evType,
 }
 #endif
 
+/**
+ * __wlan_hdd_cfg80211_abort_scan() - cfg80211 abort scan api
+ * @wiphy: Pointer to wiphy
+ * @wdev: Pointer to wireless device structure
+ *
+ * This function is used to abort an ongoing scan
+ *
+ * Return: None
+ */
+static void __wlan_hdd_cfg80211_abort_scan(struct wiphy *wiphy,
+                                           struct wireless_dev *wdev)
+{
+    struct net_device *dev = wdev->netdev;
+    hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+    int ret;
+
+    ENTER();
+
+    if (NULL == adapter) {
+        hddLog(VOS_TRACE_LEVEL_FATAL, FL("HDD adapter is NULL"));
+        return;
+    }
+
+    ret = wlan_hdd_validate_context(hdd_ctx);
+    if (0 != ret)
+        return;
+
+    wlan_hdd_scan_abort(adapter);
+
+    return;
+}
+
+/**
+ * wlan_hdd_cfg80211_abort_scan - cfg80211 abort scan api
+ * @wiphy: Pointer to wiphy
+ * @wdev: Pointer to wireless device structure
+ *
+ * Return: None
+ */
+void wlan_hdd_cfg80211_abort_scan(struct wiphy *wiphy,
+                                  struct wireless_dev *wdev)
+{
+    vos_ssr_protect(__func__);
+    __wlan_hdd_cfg80211_abort_scan(wiphy, wdev);
+    vos_ssr_unprotect(__func__);
+
+    return;
+}
+
 /* cfg80211_ops */
 static struct cfg80211_ops wlan_hdd_cfg80211_ops =
 {
@@ -19328,5 +19401,6 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
      .testmode_cmd = wlan_hdd_cfg80211_testmode,
 #endif
      .dump_survey = wlan_hdd_cfg80211_dump_survey,
+     .abort_scan = wlan_hdd_cfg80211_abort_scan,
 };
 
