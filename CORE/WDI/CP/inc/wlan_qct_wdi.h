@@ -12180,4 +12180,6 @@ WDI_SetBcnMissPenaltyCount
 (
     WDI_ModifyRoamParamsReqType *params
 );
+
+void WDI_SetMgmtPktViaWQ5(wpt_boolean sendMgmtPktViaWQ5);
 #endif /* #ifndef WLAN_QCT_WDI_H */
