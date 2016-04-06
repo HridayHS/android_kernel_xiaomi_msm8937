@@ -2723,13 +2723,14 @@ static void wlan_hdd_cfg80211_extscan_cached_results_ind(void *ctx,
                     pSirWifiScanResult = head_ptr + i;
 
                     /*
-                     * Firmware returns timestamp from WiFi turn ON till
-                     * BSSID was cached (in seconds). Add this with
-                     * time gap between system boot up to WiFi turn ON
+                     * Firmware returns timestamp from extscan_start till
+                     * BSSID was cached (in micro seconds). Add this with
+                     * time gap between system boot up to extscan_start
                      * to derive the time since boot when the
                      * BSSID was cached.
                      */
-                    pSirWifiScanResult->ts += pHddCtx->wifi_turn_on_time_since_boot;
+                    pSirWifiScanResult->ts +=
+                                     pHddCtx->extscan_start_time_since_boot;
                     hddLog(VOS_TRACE_LEVEL_INFO, "[index=%u] Timestamp(%llu) "
                             "Ssid (%s)"
                             "Bssid: %pM "
@@ -4712,6 +4713,8 @@ static int __wlan_hdd_cfg80211_extscan_start(struct wiphy *wiphy,
         goto fail;
     }
 
+    pHddCtx->extscan_start_time_since_boot = vos_get_monotonic_boottime();
+
     /* request was sent -- wait for the response */
     rc = wait_for_completion_timeout(&context->response_event,
                 msecs_to_jiffies(WLAN_WAIT_TIME_EXTSCAN));
@@ -4822,7 +4825,7 @@ static int __wlan_hdd_cfg80211_extscan_stop(struct wiphy *wiphy,
     context = &pHddCtx->ext_scan_context;
     spin_lock(&hdd_context_lock);
     INIT_COMPLETION(context->response_event);
-    context->request_id = request_id = reqMsg.sessionId;
+    context->request_id = request_id = reqMsg.requestId;
     spin_unlock(&hdd_context_lock);
 
     status = sme_EXTScanStop(pHddCtx->hHal, &reqMsg);
@@ -13257,7 +13260,7 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
            hddLog(VOS_TRACE_LEVEL_ERROR, "%s: TDLS teardown is ongoing %d",
                                           __func__, status);
        hdd_wlan_block_scan_by_tdls();
-       return status;
+       goto free_mem;
     }
 #endif
 
@@ -18103,13 +18106,16 @@ static int __wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy, struct net_device 
 
                             tdlsInfo = wlan_hdd_get_conn_info(pHddCtx, staId);
 
-                            /* Initialize initiator wait callback */
-                            vos_timer_init(
+                            if (!vos_timer_is_initialized(
+                                 &pTdlsPeer->initiatorWaitTimeoutTimer))
+                            {
+                                /* Initialize initiator wait callback */
+                                vos_timer_init(
                                     &pTdlsPeer->initiatorWaitTimeoutTimer,
                                     VOS_TIMER_TYPE_SW,
                                     wlan_hdd_tdls_initiator_wait_cb,
                                     tdlsInfo);
-
+                            }
                             wlan_hdd_tdls_timer_restart(pAdapter,
                                                         &pTdlsPeer->initiatorWaitTimeoutTimer,
                                                        WAIT_TIME_TDLS_INITIATOR);

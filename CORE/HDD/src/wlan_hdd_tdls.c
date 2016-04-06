@@ -1048,14 +1048,24 @@ void  wlan_hdd_tdls_init(hdd_context_t *pHddCtx )
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("Failed to register BT Coex TDLS callback"));
     }
 
-    if (FALSE == pHddCtx->cfg_ini->fEnableTDLSImplicitTrigger)
+    if ((TRUE == pHddCtx->cfg_ini->fEnableTDLSSupport) &&
+        (TRUE == sme_IsFeatureSupportedByFW(TDLS)))
     {
-        pHddCtx->tdls_mode = eTDLS_SUPPORT_EXPLICIT_TRIGGER_ONLY;
-        hddLog(VOS_TRACE_LEVEL_INFO, "%s TDLS Implicit trigger not enabled!", __func__);
+        if (FALSE == pHddCtx->cfg_ini->fEnableTDLSImplicitTrigger)
+        {
+            pHddCtx->tdls_mode = eTDLS_SUPPORT_EXPLICIT_TRIGGER_ONLY;
+            hddLog(LOGE, FL("TDLS Implicit trigger not enabled!"));
+            return;
+        }
+        pHddCtx->tdls_mode = eTDLS_SUPPORT_ENABLED;
     }
     else
     {
-        pHddCtx->tdls_mode = eTDLS_SUPPORT_ENABLED;
+        hddLog(LOGE,
+               FL("TDLS not enabled (%d) or FW doesn't support (%d)"),
+               pHddCtx->cfg_ini->fEnableTDLSSupport,
+               sme_IsFeatureSupportedByFW(TDLS));
+        pHddCtx->tdls_mode = eTDLS_SUPPORT_NOT_ENABLED;
     }
 }
 
@@ -2026,6 +2036,17 @@ int wlan_hdd_tdls_set_params(struct net_device *dev, tdls_config_params_t *confi
     tdlsCtx_t *pHddTdlsCtx = WLAN_HDD_GET_TDLS_CTX_PTR(pAdapter);
     eTDLSSupportMode req_tdls_mode;
 
+    if ((TRUE != pHddCtx->cfg_ini->fEnableTDLSSupport) &&
+        (TRUE != sme_IsFeatureSupportedByFW(TDLS)))
+    {
+        hddLog(LOGE,
+               FL("TDLS not enabled (%d) or FW doesn't support (%d)"),
+               pHddCtx->cfg_ini->fEnableTDLSSupport,
+               sme_IsFeatureSupportedByFW(TDLS));
+        pHddCtx->tdls_mode = eTDLS_SUPPORT_NOT_ENABLED;
+        return -EINVAL;
+    }
+
     mutex_lock(&pHddCtx->tdls_lock);
     if (NULL == pHddTdlsCtx)
     {
@@ -2503,26 +2524,26 @@ void wlan_hdd_tdls_connection_callback(hdd_adapter_t *pAdapter)
 
 void wlan_hdd_tdls_disconnection_callback(hdd_adapter_t *pAdapter)
 {
-    tdlsCtx_t *pHddTdlsCtx = WLAN_HDD_GET_TDLS_CTX_PTR(pAdapter);
-    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-
-    if (NULL == pHddCtx)
-    {
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-               FL(" pHddCtx points to NULL"));
-       return;
-    }
+    tdlsCtx_t *pHddTdlsCtx;
+    hdd_context_t *pHddCtx;
 
     VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,"%s", __func__);
 
+    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+
+    if (0 != wlan_hdd_validate_context(pHddCtx))
+        return;
+
+    mutex_lock(&pHddCtx->tdls_lock);
+
+    pHddTdlsCtx = WLAN_HDD_GET_TDLS_CTX_PTR(pAdapter);
     if (NULL == pHddTdlsCtx)
     {
+       mutex_unlock(&pHddCtx->tdls_lock);
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                  FL("pHddTdlsCtx is NULL"));
         return;
     }
-
-    mutex_lock(&pHddCtx->tdls_lock);
 
     pHddTdlsCtx->discovery_sent_cnt = 0;
     wlan_hdd_tdls_check_power_save_prohibited(pHddTdlsCtx->pAdapter);
