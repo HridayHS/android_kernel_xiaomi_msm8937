@@ -7889,21 +7889,38 @@ eHalStatus sme_InitMgmtFrameLogging( tHalHandle hHal,
     VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
     vos_msg_t       vosMessage;
+    tpSirFWLoggingInitParam msg;
+
+    msg = vos_mem_malloc(sizeof(tSirFWLoggingInitParam));
+
+    if (NULL == msg)
+    {
+        smsLog(pMac, LOGE, FL("Failed to alloc mem of size %zu for msg"),
+            sizeof(*msg));
+        return eHAL_STATUS_FAILED_ALLOC;
+    }
+    *msg = *wlanFWLoggingInitParam;
 
     if ( eHAL_STATUS_SUCCESS == ( status =
                                         sme_AcquireGlobalLock( &pMac->sme ) ) )
     {
         /* serialize the req through MC thread */
-        vosMessage.bodyptr = wlanFWLoggingInitParam;
+        vosMessage.bodyptr = msg;
         vosMessage.type         = WDA_MGMT_LOGGING_INIT_REQ;
         MTRACE(vos_trace(VOS_MODULE_ID_SME,
                  TRACE_CODE_SME_TX_WDA_MSG, NO_SESSION, vosMessage.type));
         vosStatus = vos_mq_post_message( VOS_MQ_ID_WDA, &vosMessage );
         if ( !VOS_IS_STATUS_SUCCESS(vosStatus) )
         {
+           vos_mem_free(msg);
            status = eHAL_STATUS_FAILURE;
         }
         sme_ReleaseGlobalLock( &pMac->sme );
+    }
+    else
+    {
+        smsLog(pMac, LOGE, FL("sme_AcquireGlobalLock error"));
+        vos_mem_free(msg);
     }
     return(status);
 }
@@ -12715,11 +12732,11 @@ eHalStatus sme_SpoofMacAddrReq(tHalHandle hHal, v_MACADDR_t *macaddr)
            vos_mem_copy(pMacSpoofCmd->u.macAddrSpoofCmd.macAddr,
                                                macaddr->bytes, VOS_MAC_ADDRESS_LEN);
 
-           status = csrQueueSmeCommand(pMac, pMacSpoofCmd, eANI_BOOLEAN_TRUE);
+           status = csrQueueSmeCommand(pMac, pMacSpoofCmd, false);
            if ( !HAL_STATUS_SUCCESS( status ) )
            {
                smsLog( pMac, LOGE, FL("fail to send msg status = %d\n"), status );
-               csrReleaseCommandScan(pMac, pMacSpoofCmd);
+               csrReleaseCommand(pMac, pMacSpoofCmd);
            }
        }
        else
@@ -14115,4 +14132,29 @@ eHalStatus sme_setBcnMissPenaltyCount(tHalHandle hHal,
     }
 
     return eHAL_STATUS_FAILURE;
+}
+/**
+ * sme_set_mgmt_frm_via_wq5() - Set INI params sendMgmtPktViaWQ5 to WDA.
+ * @hal: HAL pointer
+ * @sendMgmtPktViaWQ5: INI params to enable/disable sending mgmt pkt via WQ5.
+ *
+ * Return: void
+ */
+void sme_set_mgmt_frm_via_wq5(tHalHandle hHal, tANI_BOOLEAN sendMgmtPktViaWQ5)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    eHalStatus     status = eHAL_STATUS_SUCCESS;
+
+    status = sme_AcquireGlobalLock(&pMac->sme);
+    if (HAL_STATUS_SUCCESS(status))
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                "sendMgmtPktViaWQ5 is %d", sendMgmtPktViaWQ5);
+        /* not serializing this messsage, as this is only going
+         * to set a variable in WDA/WDI
+         */
+        WDA_SetMgmtPktViaWQ5(sendMgmtPktViaWQ5);
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+    return;
 }
