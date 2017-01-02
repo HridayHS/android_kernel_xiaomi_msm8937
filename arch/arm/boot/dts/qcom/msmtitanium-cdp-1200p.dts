@@ -24,7 +24,6 @@
 };
 
 &mdss_dsi0 {
-	qcom,dsi-pref-prim-pan = <&dsi_truly_wuxga_vid>;
 	qcom,platform-enable-gpio = <&tlmm 12 0>;
 };
 
