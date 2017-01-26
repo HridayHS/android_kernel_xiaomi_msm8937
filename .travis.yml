@@ -2,8 +2,7 @@ language: c
 
 before_install:
 - sudo apt-get -qq update
-- sudo apt-get install git-core gnupg flex bison gperf build-essential \
-  zip curl zlib1g-dev gcc-multilib g++-multilib
+- sudo apt-get install git-core gnupg flex bison gperf build-essentialgcc-multilib g++-multilib
 
 before_script:
 - git clone "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9" "$HOME/android_prebuilt_toolchains"
