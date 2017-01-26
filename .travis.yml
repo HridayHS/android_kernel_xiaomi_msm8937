@@ -1,0 +1,14 @@
+language: c
+
+before_install:
+- sudo apt-get -qq update
+- sudo apt-get install git-core gnupg flex bison gperf build-essential gcc-multilib g++-multilib
+
+before_script:
+- git clone "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9" "$HOME/android_prebuilt_toolchains"
+
+script:
+- export ARCH=arm64
+- export CROSS_COMPILE="$HOME/android_prebuilt_toolchains/bin/aarch64-linux-androidkernel-"
+- make land_defconfig
+- make -j4
