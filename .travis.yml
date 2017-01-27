@@ -11,4 +11,4 @@ script:
 - export ARCH=arm64
 - export CROSS_COMPILE="$HOME/android_prebuilt_toolchains/bin/aarch64-linux-androidkernel-"
 - make land_defconfig
-- make -j4
+- make Image.gz-dtb -j4
