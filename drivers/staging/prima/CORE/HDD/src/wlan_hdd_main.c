@@ -9172,7 +9172,7 @@ VOS_STATUS hdd_start_all_adapters( hdd_context_t *pHddCtx )
 
                /* indicate disconnected event to nl80211 */
                cfg80211_disconnected(pAdapter->dev, WLAN_REASON_UNSPECIFIED,
-                                     NULL, 0, GFP_KERNEL); 
+                                     NULL, 0, false, GFP_KERNEL); 
             }
             else if (eConnectionState_Connecting == connState)
             {

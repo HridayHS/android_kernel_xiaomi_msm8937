@@ -77,6 +77,12 @@ static inline void msm_vidc_free_cycles_per_mb_table(
 	res->clock_freq_tbl.clk_prof_entries = NULL;
 }
 
+static inline void msm_vidc_free_platform_version_table(
+		struct msm_vidc_platform_resources *res)
+{
+	res->pf_ver_tbl = NULL;
+}
+
 static inline void msm_vidc_free_freq_table(
 		struct msm_vidc_platform_resources *res)
 {
@@ -155,6 +161,7 @@ void msm_vidc_free_platform_resources(
 	msm_vidc_free_clock_table(res);
 	msm_vidc_free_regulator_table(res);
 	msm_vidc_free_freq_table(res);
+	msm_vidc_free_platform_version_table(res);
 	msm_vidc_free_dcvs_table(res);
 	msm_vidc_free_dcvs_limit(res);
 	msm_vidc_free_cycles_per_mb_table(res);
@@ -351,10 +358,38 @@ int msm_vidc_load_u32_table(struct platform_device *pdev,
 		return -EINVAL;
 	}
 
-	*num_elements = num_elemts;
 	*table = ptbl;
+	if (num_elements)
+		*num_elements = num_elemts;
 
 	return rc;
+}
+
+static int msm_vidc_load_platform_version_table(
+		struct msm_vidc_platform_resources *res)
+{
+	int rc = 0;
+	struct platform_device *pdev = res->pdev;
+
+	if (!of_find_property(pdev->dev.of_node,
+			"qcom,platform-version", NULL)) {
+		dprintk(VIDC_DBG, "qcom,platform-version not found\n");
+		return 0;
+	}
+
+	rc = msm_vidc_load_u32_table(pdev, pdev->dev.of_node,
+			"qcom,platform-version",
+			sizeof(*res->pf_ver_tbl),
+			(u32 **)&res->pf_ver_tbl,
+			NULL);
+	if (rc) {
+		dprintk(VIDC_ERR,
+			"%s: failed to read platform version table\n",
+			__func__);
+		return rc;
+	}
+
+	return 0;
 }
 
 static int msm_vidc_load_allowed_clocks_table(
@@ -968,6 +1003,10 @@ int read_platform_resources_from_dt(
 	if (rc)
 		dprintk(VIDC_DBG, "HFI packetization will default to legacy\n");
 
+	rc = msm_vidc_load_platform_version_table(res);
+	if (rc)
+		dprintk(VIDC_ERR, "Failed to load pf version table: %d\n", rc);
+
 	rc = msm_vidc_load_freq_table(res);
 	if (rc) {
 		dprintk(VIDC_ERR, "Failed to load freq table: %d\n", rc);
@@ -1170,7 +1209,7 @@ static int msm_vidc_setup_context_bank(struct context_bank_info *cb,
 
 	dprintk(VIDC_DBG, "Attached %s and created mapping\n", dev_name(dev));
 	dprintk(VIDC_DBG,
-		"Context bank name:%s, buffer_type: %#x, is_secure: %d, address range start: %#x, size: %#x, dev: %p, mapping: %p",
+		"Context bank name:%s, buffer_type: %#x, is_secure: %d, address range start: %#x, size: %#x, dev: %pK, mapping: %pK",
 		cb->name, cb->buffer_type, cb->is_secure, cb->addr_range.start,
 		cb->addr_range.size, cb->dev, cb->mapping);
 
@@ -1194,7 +1233,7 @@ int msm_vidc_smmu_fault_handler(struct iommu_domain *domain,
 	enum vidc_ports port;
 
 	if (!domain || !core) {
-		dprintk(VIDC_ERR, "%s - invalid param %p %p\n",
+		dprintk(VIDC_ERR, "%s - invalid param %pK %pK\n",
 			__func__, domain, core);
 		return -EINVAL;
 	}
@@ -1216,7 +1255,7 @@ int msm_vidc_smmu_fault_handler(struct iommu_domain *domain,
 			!inst->bit_depth ? "8" : "10");
 
 		dprintk(VIDC_ERR,
-			"---Buffer details for inst: %p of type: %d---\n",
+			"---Buffer details for inst: %pK of type: %d---\n",
 			inst, inst->session_type);
 		mutex_lock(&inst->registeredbufs.lock);
 		dprintk(VIDC_ERR, "registered buffer list:\n");

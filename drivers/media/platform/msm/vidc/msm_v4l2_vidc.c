@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2015, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2016, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -22,6 +22,7 @@
 #include <linux/slab.h>
 #include <linux/types.h>
 #include <linux/version.h>
+#include <linux/io.h>
 #include <media/msm_vidc.h>
 #include "msm_vidc_common.h"
 #include "msm_vidc_debug.h"
@@ -279,7 +280,7 @@ static int read_platform_resources(struct msm_vidc_core *core,
 		struct platform_device *pdev)
 {
 	if (!core || !pdev) {
-		dprintk(VIDC_ERR, "%s: Invalid params %p %p\n",
+		dprintk(VIDC_ERR, "%s: Invalid params %pK %pK\n",
 			__func__, core, pdev);
 		return -EINVAL;
 	}
@@ -397,9 +398,28 @@ static ssize_t store_thermal_level(struct device *dev,
 static DEVICE_ATTR(thermal_level, S_IRUGO | S_IWUSR, show_thermal_level,
 		store_thermal_level);
 
+static ssize_t show_platform_version(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return scnprintf(buf, PAGE_SIZE, "%d",
+			vidc_driver->platform_version);
+}
+
+static ssize_t store_platform_version(struct device *dev,
+		struct device_attribute *attr, const char *buf,
+		size_t count)
+{
+	dprintk(VIDC_WARN, "store platform version is not allowed\n");
+	return count;
+}
+
+static DEVICE_ATTR(platform_version, S_IRUGO, show_platform_version,
+		store_platform_version);
+
 static struct attribute *msm_vidc_core_attrs[] = {
 		&dev_attr_pwr_collapse_delay.attr,
 		&dev_attr_thermal_level.attr,
+		&dev_attr_platform_version.attr,
 		NULL
 };
 
@@ -417,6 +437,8 @@ static const struct of_device_id msm_vidc_dt_match[] = {
 static int msm_vidc_probe_vidc_device(struct platform_device *pdev)
 {
 	int rc = 0;
+	void __iomem *base;
+	struct resource *res;
 	struct msm_vidc_core *core;
 	struct device *dev;
 	int nr = BASE_DEVICE_NUMBER;
@@ -531,6 +553,33 @@ static int msm_vidc_probe_vidc_device(struct platform_device *pdev)
 	core->debugfs_root = msm_vidc_debugfs_init_core(
 		core, vidc_driver->debugfs_root);
 
+	vidc_driver->platform_version = 0;
+	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "efuse");
+	if (!res) {
+		dprintk(VIDC_DBG, "failed to get efuse resource\n");
+	} else {
+		base = devm_ioremap(&pdev->dev, res->start, resource_size(res));
+		if (!base) {
+			dprintk(VIDC_ERR,
+				"failed efuse ioremap: res->start %#x, size %d\n",
+				(u32)res->start, (u32)resource_size(res));
+		} else {
+			u32 efuse = 0;
+			struct platform_version_table *pf_ver_tbl =
+				core->resources.pf_ver_tbl;
+
+			efuse = readl_relaxed(base);
+			vidc_driver->platform_version =
+				(efuse & pf_ver_tbl->version_mask) >>
+				pf_ver_tbl->version_shift;
+			dprintk(VIDC_DBG,
+				"efuse 0x%x, platform version 0x%x\n",
+				efuse, vidc_driver->platform_version);
+
+			devm_iounmap(&pdev->dev, base);
+		}
+	}
+
 	dprintk(VIDC_DBG, "populating sub devices\n");
 	/*
 	 * Trigger probe for each sub-device i.e. qcom,msm-vidc,context-bank.
@@ -608,7 +657,7 @@ static int msm_vidc_remove(struct platform_device *pdev)
 	struct msm_vidc_core *core;
 
 	if (!pdev) {
-		dprintk(VIDC_ERR, "%s invalid input %p", __func__, pdev);
+		dprintk(VIDC_ERR, "%s invalid input %pK", __func__, pdev);
 		return -EINVAL;
 	}
 
