@@ -2248,7 +2248,7 @@ static long _gpuobj_map_dma_buf(struct kgsl_device *device,
 	if (ret)
 		return ret;
 
-	if (buf.fd == 0)
+	if (buf.fd < 0)
 		return -EINVAL;
 
 	*fd = buf.fd;
@@ -3929,7 +3929,7 @@ int kgsl_device_platform_probe(struct kgsl_device *device)
 		goto error_close_mmu;
 
 	status = kgsl_allocate_global(device, &device->memstore,
-		KGSL_MEMSTORE_SIZE, 0, 0);
+		KGSL_MEMSTORE_SIZE, 0, KGSL_MEMDESC_CONTIG);
 
 	if (status != 0) {
 		KGSL_DRV_ERR(device, "kgsl_allocate_global failed %d\n",
