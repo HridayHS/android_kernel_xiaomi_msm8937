@@ -211,19 +211,12 @@ extern unsigned long raw_copy_from_user(void *to, const void __user *from,
 static inline unsigned long
 copy_from_user(void *to, const void __user *from, unsigned long n)
 {
-<<<<<<< HEAD
-	if (likely(access_ok(VERIFY_READ, from, n)))
-		return __copy_user_zeroing(to, from, n);
-	memset(to, 0, n);
-	return n;
-=======
 	unsigned long res = n;
 	if (likely(access_ok(VERIFY_READ, from, n)))
 		res = raw_copy_from_user(to, from, n);
 	if (unlikely(res))
 		memset(to + (n - res), 0, res);
 	return res;
->>>>>>> 1ffd8f331a288ac2736e342a9b384033dd2c6b3f
 }
 
 #define __copy_from_user(to, from, n) raw_copy_from_user(to, from, n)

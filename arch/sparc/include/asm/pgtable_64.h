@@ -676,16 +676,6 @@ static inline unsigned long pmd_write(pmd_t pmd)
 
 #ifdef CONFIG_TRANSPARENT_HUGEPAGE
 static inline unsigned long pmd_dirty(pmd_t pmd)
-<<<<<<< HEAD
-{
-	pte_t pte = __pte(pmd_val(pmd));
-
-	return pte_dirty(pte);
-}
-
-static inline unsigned long pmd_young(pmd_t pmd)
-=======
->>>>>>> 1ffd8f331a288ac2736e342a9b384033dd2c6b3f
 {
 	pte_t pte = __pte(pmd_val(pmd));
 
@@ -1013,7 +1003,7 @@ static inline int io_remap_pfn_range(struct vm_area_struct *vma,
 
 	return remap_pfn_range(vma, from, phys_base >> PAGE_SHIFT, size, prot);
 }
-#define io_remap_pfn_range io_remap_pfn_range 
+#define io_remap_pfn_range io_remap_pfn_range
 
 #include <asm/tlbflush.h>
 #include <asm-generic/pgtable.h>

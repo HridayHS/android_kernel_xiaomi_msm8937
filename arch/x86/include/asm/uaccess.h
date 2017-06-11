@@ -407,11 +407,7 @@ do {									\
 		     "  jmp 2b\n"					\
 		     ".previous\n"					\
 		     _ASM_EXTABLE_EX(1b, 3b)				\
-<<<<<<< HEAD
-		     : ltype(x) : "m" (__m(addr)))
-=======
 		     : ltype(x) : "m" (__m(addr)), "0" (0))
->>>>>>> 1ffd8f331a288ac2736e342a9b384033dd2c6b3f
 
 #define __put_user_nocheck(x, ptr, size)			\
 ({								\
@@ -793,4 +789,3 @@ do {										\
 } while (0)
 
 #endif /* _ASM_X86_UACCESS_H */
-

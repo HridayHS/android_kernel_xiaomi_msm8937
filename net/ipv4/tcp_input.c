@@ -3324,16 +3324,7 @@ static void tcp_send_challenge_ack(struct sock *sk)
 	/* unprotected vars, we dont care of overwrites */
 	static u32 challenge_timestamp;
 	static unsigned int challenge_count;
-<<<<<<< HEAD
-<<<<<<< HEAD
-	u32 now = jiffies / HZ;
-	u32 count;
-=======
 	u32 count, now = jiffies / HZ;
->>>>>>> 0aa1196d52862363fd7e20b3a6102c674f1d367f
-=======
-	u32 count, now = jiffies / HZ;
->>>>>>> 1ffd8f331a288ac2736e342a9b384033dd2c6b3f
 
 	if (now != challenge_timestamp) {
 		u32 half = (sysctl_tcp_challenge_ack_limit + 1) >> 1;

@@ -743,17 +743,11 @@ void iscsit_free_cmd(struct iscsi_cmd *cmd, bool shutdown)
 		 * Fallthrough
 		 */
 	case ISCSI_OP_SCSI_TMFUNC:
-<<<<<<< HEAD
-		rc = transport_generic_free_cmd(&cmd->se_cmd, shutdown);
-		if (!rc && shutdown && se_cmd && se_cmd->se_sess) {
-			__iscsit_free_cmd(cmd, true, shutdown);
-=======
 		se_cmd = &cmd->se_cmd;
 		__iscsit_free_cmd(cmd, op_scsi, shutdown);
 		rc = transport_generic_free_cmd(se_cmd, shutdown);
 		if (!rc && shutdown && se_cmd->se_sess) {
 			__iscsit_free_cmd(cmd, op_scsi, shutdown);
->>>>>>> 1ffd8f331a288ac2736e342a9b384033dd2c6b3f
 			target_put_sess_cmd(se_cmd);
 		}
 		break;
