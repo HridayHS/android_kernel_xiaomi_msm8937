@@ -760,7 +760,8 @@ static void __ref do_hotplug(struct cpu_data *f)
 	mutex_lock(&lru_lock);
 	if (f->online_cpus > need) {
 		list_for_each_entry_safe(c, tmp, &f->lru, sib) {
-			if (!c->online)
+//difr			if (!c->online)
+			if (!c->online || !c->not_preferred)
 				continue;
 
 			if (f->online_cpus == need)
@@ -783,7 +784,8 @@ static void __ref do_hotplug(struct cpu_data *f)
 			goto done;
 
 		list_for_each_entry_safe(c, tmp, &f->lru, sib) {
-			if (!c->online)
+//difr			if (!c->online)
+			if (!c->online || !c->not_preferred)
 				continue;
 
 			if (f->online_cpus <= f->max_cpus)
@@ -795,7 +797,8 @@ static void __ref do_hotplug(struct cpu_data *f)
 		}
 	} else if (f->online_cpus < need) {
 		list_for_each_entry_safe(c, tmp, &f->lru, sib) {
-			if (c->online || c->rejected || c->not_preferred)
+//difr			if (c->online || c->rejected || c->not_preferred)
+			if (c->online || c->rejected)
 				continue;
 			if (f->online_cpus == need)
 				break;
@@ -805,6 +808,7 @@ static void __ref do_hotplug(struct cpu_data *f)
 				pr_debug("Unable to Online CPU%u\n", c->cpu);
 		}
 
+/*difr
 		if (f->online_cpus == need)
 			goto done;
 
@@ -819,6 +823,7 @@ static void __ref do_hotplug(struct cpu_data *f)
 			if (core_ctl_online_core(c->cpu))
 				pr_debug("Unable to Online CPU%u\n", c->cpu);
 		}
+*/
 	}
 done:
 	mutex_unlock(&lru_lock);

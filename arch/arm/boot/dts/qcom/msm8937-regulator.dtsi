@@ -298,7 +298,7 @@
 			compatible = "qcom,spm-regulator";
 			reg = <0x2000 0x100>;
 			regulator-name = "pm8937_s5";
-			regulator-min-microvolt = <1050000>;
+			regulator-min-microvolt = <1000000>;
 			regulator-max-microvolt = <1350000>;
 		};
 	};
@@ -360,8 +360,8 @@
 		regulator-max-microvolt = <6>;
 
 		qcom,cpr-fuse-corners = <3>;
-		qcom,cpr-voltage-ceiling = <1155000 1225000 1350000>;
-		qcom,cpr-voltage-floor =   <1150000 1150000 1250000>;
+		qcom,cpr-voltage-ceiling = <1100000 1225000 1350000>;
+		qcom,cpr-voltage-floor =   <1000000 1100000 1200000>;
 		vdd-apc-supply = <&pm8937_s5>;
 
 		mem-acc-supply = <&mem_acc_vreg_corner>;
@@ -383,7 +383,7 @@
 		qcom,cpr-fuse-row = <67 0>;
 		qcom,cpr-fuse-target-quot = <42 24 6>;
 		qcom,cpr-fuse-ro-sel = <60 57 54>;
-		qcom,cpr-init-voltage-ref = <1155000 1225000 1350000>;
+		qcom,cpr-init-voltage-ref = <1100000 1225000 1350000>;
 		qcom,cpr-fuse-init-voltage =
 					<67 36 6 0>,
 					<67 18 6 0>,
@@ -394,18 +394,21 @@
 					<70 54 7 0>;
 		qcom,cpr-fuse-quot-offset-scale = <5 5 5>;
 		qcom,cpr-init-voltage-step = <10000>;
-		qcom,cpr-corner-map = <1 2 3 3 3 3>;
+		qcom,cpr-corner-map = <1 2 2 3 3 3>;
 		qcom,cpr-corner-frequency-map =
-				<1 960000000>,
-				<2 1094400000>,
-				<3 1209600000>,
-				<4 1248000000>,
+				<1 422400000>,
+				<2 960000000>,
+				<3 1094400000>,
+				<4 1209600000>,
 				<5 1344000000>,
-				<6 1401000000>;
+				<6 1497600000>;
+		qcom,cpr-voltage-ceiling-override =
+				<(-1) (-1) 1100000 1225000 1225000 1350000 1350000 1350000>;
+		qcom,cpr-voltage-floor-override =
+				<(-1) (-1) 1000000 1100000 1150000 1200000 1225000 1250000>;
 		qcom,speed-bin-fuse-sel = <37 34 3 0>;
 		qcom,cpr-speed-bin-max-corners =
-					<0 0 1 2 6>,
-					<2 0 1 2 3>;
+					<0 0 1 3 6>;
 		qcom,cpr-fuse-revision = <69 39 3 0>;
 		qcom,cpr-quot-adjust-scaling-factor-max = <0 1400 1400>;
 		qcom,cpr-voltage-scaling-factor-max = <0 2000 2000>;

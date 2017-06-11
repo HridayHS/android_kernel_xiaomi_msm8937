@@ -1881,8 +1881,8 @@ static ssize_t vdd_rstr_en_store(struct kobject *kobj,
 
 	for (i = 0; i < rails_cnt; i++) {
 		if (rails[i].freq_req == 1 && freq_table_get)
-			ret = vdd_restriction_apply_freq(&rails[i],
-					(val) ? 0 : -1);
+			ret = 0;/*vdd_restriction_apply_voltage only!*//*vdd_restriction_apply_freq(&rails[i],
+					(val) ? 0 : -1);*/
 		else
 			ret = vdd_restriction_apply_voltage(&rails[i],
 			(val) ? 0 : -1);

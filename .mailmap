@@ -17,8 +17,7 @@ Aleksey Gorelov <aleksey_gorelov@phoenix.com>
 Al Viro <viro@ftp.linux.org.uk>
 Al Viro <viro@zenIV.linux.org.uk>
 Andreas Herrmann <aherrman@de.ibm.com>
-Andrey Ryabinin <ryabinin.a.a@gmail.com> <a.ryabinin@samsung.com>
-Andrew Morton <akpm@linux-foundation.org>
+Andrew Morton <akpm@osdl.org>
 Andrew Vasquez <andrew.vasquez@qlogic.com>
 Andy Adamson <andros@citi.umich.edu>
 Archit Taneja <archit@ti.com>
@@ -79,6 +78,7 @@ Leonid I Ananiev <leonid.i.ananiev@intel.com>
 Linas Vepstas <linas@austin.ibm.com>
 Mark Brown <broonie@sirena.org.uk>
 Matthieu CASTET <castet.matthieu@free.fr>
+Mauro Carvalho Chehab <mchehab@kernel.org> <maurochehab@gmail.com> <mchehab@infradead.org> <mchehab@redhat.com> <m.chehab@samsung.com> <mchehab@osg.samsung.com> <mchehab@s-opensource.com>
 Mayuresh Janorkar <mayur@ti.com>
 Michael Buesch <m@bues.ch>
 Michel Dänzer <michel@tungstengraphics.com>
