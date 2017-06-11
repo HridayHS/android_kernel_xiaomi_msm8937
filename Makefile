@@ -1,6 +1,10 @@
 VERSION = 3
 PATCHLEVEL = 18
+<<<<<<< HEAD
 SUBLEVEL = 48
+=======
+SUBLEVEL = 55
+>>>>>>> 1ffd8f331a288ac2736e342a9b384033dd2c6b3f
 EXTRAVERSION =
 NAME = Shuffling Zombie Juror
 

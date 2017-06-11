@@ -2394,8 +2394,10 @@ int __sys_recvmmsg(int fd, struct mmsghdr __user *mmsg, unsigned int vlen,
 		return err;
 
 	err = sock_error(sock->sk);
-	if (err)
+	if (err) {
+		datagrams = err;
 		goto out_put;
+	}
 
 	entry = mmsg;
 	compat_entry = (struct compat_mmsghdr __user *)mmsg;
@@ -2452,6 +2454,7 @@ int __sys_recvmmsg(int fd, struct mmsghdr __user *mmsg, unsigned int vlen,
 	if (err == 0)
 		goto out_put;
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 	if (datagrams == 0) {
 		datagrams = err;
@@ -2459,13 +2462,18 @@ int __sys_recvmmsg(int fd, struct mmsghdr __user *mmsg, unsigned int vlen,
 	}
 
 =======
+=======
+>>>>>>> 1ffd8f331a288ac2736e342a9b384033dd2c6b3f
 
 	if (datagrams == 0) {
 		datagrams = err;
 		goto out_put;
 	}
 
+<<<<<<< HEAD
 >>>>>>> 0aa1196d52862363fd7e20b3a6102c674f1d367f
+=======
+>>>>>>> 1ffd8f331a288ac2736e342a9b384033dd2c6b3f
 	/*
 	 * We may return less entries than requested (vlen) if the
 	 * sock is non block and there aren't enough datagrams...

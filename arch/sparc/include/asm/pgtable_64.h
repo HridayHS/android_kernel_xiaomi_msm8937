@@ -666,8 +666,26 @@ static inline unsigned long pmd_pfn(pmd_t pmd)
 	return pte_pfn(pte);
 }
 
+#define __HAVE_ARCH_PMD_WRITE
+static inline unsigned long pmd_write(pmd_t pmd)
+{
+	pte_t pte = __pte(pmd_val(pmd));
+
+	return pte_write(pte);
+}
+
 #ifdef CONFIG_TRANSPARENT_HUGEPAGE
 static inline unsigned long pmd_dirty(pmd_t pmd)
+<<<<<<< HEAD
+{
+	pte_t pte = __pte(pmd_val(pmd));
+
+	return pte_dirty(pte);
+}
+
+static inline unsigned long pmd_young(pmd_t pmd)
+=======
+>>>>>>> 1ffd8f331a288ac2736e342a9b384033dd2c6b3f
 {
 	pte_t pte = __pte(pmd_val(pmd));
 
@@ -679,13 +697,6 @@ static inline unsigned long pmd_young(pmd_t pmd)
 	pte_t pte = __pte(pmd_val(pmd));
 
 	return pte_young(pte);
-}
-
-static inline unsigned long pmd_write(pmd_t pmd)
-{
-	pte_t pte = __pte(pmd_val(pmd));
-
-	return pte_write(pte);
 }
 
 static inline unsigned long pmd_trans_huge(pmd_t pmd)

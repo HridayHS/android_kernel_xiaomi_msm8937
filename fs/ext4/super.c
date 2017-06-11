@@ -3732,6 +3732,7 @@ static int ext4_fill_super(struct super_block *sb, void *data, int silent)
 		ext4_msg(sb, KERN_ERR,
 			 "Number of reserved GDT blocks insanely large: %d",
 			 le16_to_cpu(sbi->s_es->s_reserved_gdt_blocks));
+<<<<<<< HEAD
 		goto failed_mount;
 	}
 
@@ -3739,6 +3740,8 @@ static int ext4_fill_super(struct super_block *sb, void *data, int silent)
 	    es->s_encryption_level) {
 		ext4_msg(sb, KERN_ERR, "Unsupported encryption level %d",
 			 es->s_encryption_level);
+=======
+>>>>>>> 1ffd8f331a288ac2736e342a9b384033dd2c6b3f
 		goto failed_mount;
 	}
 

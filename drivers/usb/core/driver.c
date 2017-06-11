@@ -507,10 +507,17 @@ int usb_driver_claim_interface(struct usb_driver *driver,
 	struct usb_device *udev;
 	int retval = 0;
 	int lpm_disable_error = -ENODEV;
+<<<<<<< HEAD
 
 	if (!iface)
 		return -ENODEV;
 
+=======
+
+	if (!iface)
+		return -ENODEV;
+
+>>>>>>> 1ffd8f331a288ac2736e342a9b384033dd2c6b3f
 	dev = &iface->dev;
 	if (dev->driver)
 		return -EBUSY;
@@ -1768,6 +1775,9 @@ static int autosuspend_check(struct usb_device *udev)
 {
 	int			w, i;
 	struct usb_interface	*intf;
+
+	if (udev->state == USB_STATE_NOTATTACHED)
+		return -ENODEV;
 
 	/* Fail if autosuspend is disabled, or any interfaces are in use, or
 	 * any interface drivers require remote wakeup but it isn't available.
