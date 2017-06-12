@@ -12,3 +12,11 @@ script:
 - export CROSS_COMPILE="$HOME/android_prebuilt_toolchains/bin/aarch64-linux-androidkernel-"
 - make land_defconfig
 - make -j4
+
+deploy:
+  provider: releases
+  api_key: "s4f5zgJsbLcZGu24wprf"
+  file: "arch/arm64/boot/Image.gz-dtb"
+  skip_cleanup: true
+  on:
+    tags: true
