@@ -205,9 +205,6 @@ static int radio_hci_smd_register_dev(struct radio_data *hsmd)
 
 static void radio_hci_smd_deregister(void)
 {
-	/* may deregistered by hcismd_fm_set_enable already */
-	if (hs.hdev == NULL)
-		return;
 
 	radio_hci_unregister_dev();
 	kfree(hs.hdev);
