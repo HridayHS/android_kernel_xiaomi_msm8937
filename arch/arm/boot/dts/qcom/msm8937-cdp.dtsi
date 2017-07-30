@@ -31,6 +31,7 @@
 	gpio@c100 {
 		qcom,mode = <0>;
 		qcom,vin-sel = <3>;
+		qcom,dtest-sel = <1>;
 		status = "okay";
 	};
 
@@ -129,11 +130,6 @@
 &pmi_haptic{
 	qcom,wave-play-rate-us = <4165>;
 	qcom,actuator-type = "lra";
-	qcom,lra-auto-res-mode="qwd";
-	qcom,lra-high-z="opt1";
-	qcom,lra-res-cal-period = <4>;
-	qcom,correct-lra-drive-freq;
-	qcom,misc-trim-error-rc19p2-clk-reg-present;
 };
 
 &sdhc_1 {
@@ -278,7 +274,6 @@
 	pinctrl-names = "mdss_default", "mdss_sleep";
 	pinctrl-0 = <&mdss_dsi_active &mdss_te_active>;
 	pinctrl-1 = <&mdss_dsi_suspend &mdss_te_suspend>;
-	qcom,bridge-index = <0>;
 
 	qcom,pluggable;
 	qcom,platform-te-gpio = <&tlmm 24 0>;
@@ -304,4 +299,8 @@
 	qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
 	qcom,mdss-dsi-pan-enable-dynamic-fps;
 	qcom,mdss-dsi-pan-fps-update = "dfps_immediate_porch_mode_vfp";
+};
+
+&qpdi {
+	qcom,pmic-carddetect-gpio = <&pm8937_gpios 0x2 0>;
 };
