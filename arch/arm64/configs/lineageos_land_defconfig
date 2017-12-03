@@ -1629,10 +1629,7 @@ CONFIG_WIL6210_PLATFORM_MSM=y
 # CONFIG_LIBERTAS is not set
 # CONFIG_WL_TI is not set
 # CONFIG_MWIFIEX is not set
-CONFIG_CNSS=y
-# CONFIG_CNSS_SDIO is not set
-# CONFIG_CNSS_PCI is not set
-# CONFIG_CNSS_MAC_BUG is not set
+# CONFIG_CNSS is not set
 # CONFIG_CLD_DEBUG is not set
 # CONFIG_CLD_HL_SDIO_CORE is not set
 CONFIG_CLD_LL_CORE=y
