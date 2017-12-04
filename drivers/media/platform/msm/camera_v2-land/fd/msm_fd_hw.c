@@ -661,7 +661,7 @@ int32_t msm_fd_hw_set_dt_parms_by_name(struct msm_fd_device *fd,
 				dt_reg_settings[i + MSM_FD_REG_ADDR_OFFSET_IDX],
 				dt_reg_settings[i + MSM_FD_REG_VALUE_IDX] &
 				dt_reg_settings[i + MSM_FD_REG_MASK_IDX]);
-			pr_debug("%s:%d] %p %08x\n", __func__, __LINE__,
+			pr_debug("%s:%d] %pK %08x\n", __func__, __LINE__,
 				fd->iomem_base[base_idx] +
 				dt_reg_settings[i + MSM_FD_REG_ADDR_OFFSET_IDX],
 				dt_reg_settings[i + MSM_FD_REG_VALUE_IDX] &
@@ -830,7 +830,8 @@ int msm_fd_hw_get(struct msm_fd_device *fd, unsigned int clock_rate_idx)
 
 	if (fd->ref_count == 0) {
 		ret =
-			msm_camera_regulator_enable(fd->vdd, fd->num_reg, true);
+			msm_camera_regulator_enable(fd->vdd_info,
+				fd->num_reg, true);
 		if (ret < 0) {
 			dev_err(fd->dev, "Fail to enable vdd\n");
 			goto error;
@@ -873,7 +874,7 @@ error_set_dt:
 		fd->clk, fd->clk_num, false);
 error_clocks:
 error_bus_request:
-	msm_camera_regulator_enable(fd->vdd, fd->num_reg, false);
+	msm_camera_regulator_enable(fd->vdd_info, fd->num_reg, false);
 error:
 	mutex_unlock(&fd->lock);
 	return ret;
@@ -901,7 +902,7 @@ void msm_fd_hw_put(struct msm_fd_device *fd)
 		msm_fd_hw_bus_request(fd, 0);
 		msm_camera_clk_enable(&fd->pdev->dev, fd->clk_info,
 				fd->clk, fd->clk_num, false);
-		msm_camera_regulator_enable(fd->vdd, fd->num_reg, false);
+		msm_camera_regulator_enable(fd->vdd_info, fd->num_reg, false);
 	}
 	mutex_unlock(&fd->lock);
 }
@@ -915,7 +916,7 @@ void msm_fd_hw_put(struct msm_fd_device *fd)
  */
 static int msm_fd_hw_attach_iommu(struct msm_fd_device *fd)
 {
-	int ret;
+	int ret = -EINVAL;
 
 	mutex_lock(&fd->lock);
 

@@ -97,6 +97,11 @@ static void msm_actuator_parse_i2c_params(struct msm_actuator_ctrl_t *a_ctrl,
 		return;
 	}
 
+	if (a_ctrl->i2c_reg_tbl == NULL) {
+		pr_err("failed. i2c reg tabl is NULL");
+		return;
+	}
+
 	size = a_ctrl->reg_tbl_size;
 	write_arr = a_ctrl->reg_tbl;
 	i2c_tbl = a_ctrl->i2c_reg_tbl;
@@ -584,7 +589,7 @@ static int32_t msm_actuator_move_focus(
 	if ((a_ctrl->region_size <= 0) ||
 		(a_ctrl->region_size > MAX_ACTUATOR_REGION) ||
 		(!move_params->ringing_params)) {
-		pr_err("Invalid-region size = %d, ringing_params = %p\n",
+		pr_err("Invalid-region size = %d, ringing_params = %pK\n",
 		a_ctrl->region_size, move_params->ringing_params);
 		return -EFAULT;
 	}
@@ -704,7 +709,7 @@ static int32_t msm_actuator_bivcm_move_focus(
 	if ((a_ctrl->region_size <= 0) ||
 		(a_ctrl->region_size > MAX_ACTUATOR_REGION) ||
 		(!move_params->ringing_params)) {
-		pr_err("Invalid-region size = %d, ringing_params = %p\n",
+		pr_err("Invalid-region size = %d, ringing_params = %pK\n",
 		a_ctrl->region_size, move_params->ringing_params);
 		return -EFAULT;
 	}
@@ -1042,7 +1047,7 @@ static int32_t msm_actuator_vreg_control(struct msm_actuator_ctrl_t *a_ctrl,
 	if (!cnt)
 		return 0;
 
-	if (cnt >= MSM_ACTUATOT_MAX_VREGS) {
+	if (cnt >= MSM_ACTUATOR_MAX_VREGS) {
 		pr_err("%s failed %d cnt %d\n", __func__, __LINE__, cnt);
 		return -EINVAL;
 	}
@@ -1068,6 +1073,8 @@ static int32_t msm_actuator_vreg_control(struct msm_actuator_ctrl_t *a_ctrl,
 static int32_t msm_actuator_power_down(struct msm_actuator_ctrl_t *a_ctrl)
 {
 	int32_t rc = 0;
+	enum msm_sensor_power_seq_gpio_t gpio;
+
 	CDBG("Enter\n");
 	if (a_ctrl->actuator_state != ACT_DISABLE_STATE) {
 
@@ -1082,6 +1089,41 @@ static int32_t msm_actuator_power_down(struct msm_actuator_ctrl_t *a_ctrl)
 		if (rc < 0) {
 			pr_err("%s failed %d\n", __func__, __LINE__);
 			return rc;
+		}
+
+		for (gpio = SENSOR_GPIO_AF_PWDM;
+			gpio < SENSOR_GPIO_MAX; gpio++) {
+			if (a_ctrl->gconf &&
+				a_ctrl->gconf->gpio_num_info &&
+				a_ctrl->gconf->gpio_num_info->
+					valid[gpio] == 1) {
+
+				gpio_set_value_cansleep(
+					a_ctrl->gconf->gpio_num_info->
+						gpio_num[gpio],
+					GPIOF_OUT_INIT_LOW);
+
+				if (a_ctrl->cam_pinctrl_status) {
+					rc = pinctrl_select_state(
+						a_ctrl->pinctrl_info.pinctrl,
+						a_ctrl->pinctrl_info.
+							gpio_state_suspend);
+					if (rc < 0)
+						pr_err("ERR:%s:%d cannot set pin to suspend state: %d",
+							__func__, __LINE__, rc);
+
+					devm_pinctrl_put(
+						a_ctrl->pinctrl_info.pinctrl);
+				}
+				a_ctrl->cam_pinctrl_status = 0;
+				rc = msm_camera_request_gpio_table(
+					a_ctrl->gconf->cam_gpio_req_tbl,
+					a_ctrl->gconf->cam_gpio_req_tbl_size,
+					0);
+				if (rc < 0)
+					pr_err("ERR:%s:Failed in selecting state in actuator power down: %d\n",
+						__func__, rc);
+			}
 		}
 
 		kfree(a_ctrl->step_position_table);
@@ -1227,9 +1269,11 @@ static int32_t msm_actuator_set_param(struct msm_actuator_ctrl_t *a_ctrl,
 
 	if (copy_from_user(&a_ctrl->region_params,
 		(void *)set_info->af_tuning_params.region_params,
-		a_ctrl->region_size * sizeof(struct region_params_t)))
+		a_ctrl->region_size * sizeof(struct region_params_t))) {
+		a_ctrl->total_steps = 0;
+		pr_err("Error copying region_params\n");
 		return -EFAULT;
-
+	}
 	if (a_ctrl->act_device_type == MSM_CAMERA_PLATFORM_DEVICE) {
 		cci_client = a_ctrl->i2c_client.cci_client;
 		cci_client->sid =
@@ -1499,7 +1543,7 @@ static long msm_actuator_subdev_ioctl(struct v4l2_subdev *sd,
 	struct msm_actuator_ctrl_t *a_ctrl = v4l2_get_subdevdata(sd);
 	void __user *argp = (void __user *)arg;
 	CDBG("Enter\n");
-	CDBG("%s:%d a_ctrl %p argp %p\n", __func__, __LINE__, a_ctrl, argp);
+	CDBG("%s:%d a_ctrl %pK argp %pK\n", __func__, __LINE__, a_ctrl, argp);
 	switch (cmd) {
 	case VIDIOC_MSM_SENSOR_GET_SUBDEV_ID:
 		return msm_actuator_get_subdev_id(a_ctrl, argp);
@@ -1677,12 +1721,41 @@ static long msm_actuator_subdev_fops_ioctl(struct file *file, unsigned int cmd,
 static int32_t msm_actuator_power_up(struct msm_actuator_ctrl_t *a_ctrl)
 {
 	int rc = 0;
+	enum msm_sensor_power_seq_gpio_t gpio;
+
 	CDBG("%s called\n", __func__);
 
 	rc = msm_actuator_vreg_control(a_ctrl, 1);
 	if (rc < 0) {
 		pr_err("%s failed %d\n", __func__, __LINE__);
 		return rc;
+	}
+
+	for (gpio = SENSOR_GPIO_AF_PWDM; gpio < SENSOR_GPIO_MAX; gpio++) {
+		if (a_ctrl->gconf &&
+			a_ctrl->gconf->gpio_num_info &&
+			a_ctrl->gconf->gpio_num_info->valid[gpio] == 1) {
+			rc = msm_camera_request_gpio_table(
+				a_ctrl->gconf->cam_gpio_req_tbl,
+				a_ctrl->gconf->cam_gpio_req_tbl_size, 1);
+			if (rc < 0) {
+				pr_err("ERR:%s:Failed in selecting state for actuator: %d\n",
+					__func__, rc);
+				return rc;
+			}
+			if (a_ctrl->cam_pinctrl_status) {
+				rc = pinctrl_select_state(
+					a_ctrl->pinctrl_info.pinctrl,
+					a_ctrl->pinctrl_info.gpio_state_active);
+				if (rc < 0)
+					pr_err("ERR:%s:%d cannot set pin to active state: %d",
+						__func__, __LINE__, rc);
+			}
+
+			gpio_set_value_cansleep(
+				a_ctrl->gconf->gpio_num_info->gpio_num[gpio],
+				1);
+		}
 	}
 
 	/* VREG needs some delay to power up */
@@ -1731,7 +1804,7 @@ static int32_t msm_actuator_i2c_probe(struct i2c_client *client,
 		goto probe_failure;
 	}
 
-	CDBG("client = 0x%p\n",  client);
+	CDBG("client = 0x%pK\n",  client);
 
 	rc = of_property_read_u32(client->dev.of_node, "cell-index",
 		&act_ctrl_t->subdev_id);
@@ -1843,6 +1916,20 @@ static int32_t msm_actuator_platform_probe(struct platform_device *pdev)
 			kfree(msm_actuator_t);
 			pr_err("failed rc %d\n", rc);
 			return rc;
+		}
+	}
+	rc = msm_sensor_driver_get_gpio_data(&(msm_actuator_t->gconf),
+		(&pdev->dev)->of_node);
+	if (rc < 0) {
+		pr_err("%s: No/Error Actuator GPIOs\n", __func__);
+	} else {
+		msm_actuator_t->cam_pinctrl_status = 1;
+		rc = msm_camera_pinctrl_init(
+			&(msm_actuator_t->pinctrl_info), &(pdev->dev));
+		if (rc < 0) {
+			pr_err("ERR:%s: Error in reading actuator pinctrl\n",
+				__func__);
+			msm_actuator_t->cam_pinctrl_status = 0;
 		}
 	}
 

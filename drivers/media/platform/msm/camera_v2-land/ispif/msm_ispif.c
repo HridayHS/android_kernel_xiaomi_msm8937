@@ -46,7 +46,7 @@
 
 #define ISPIF_TIMEOUT_SLEEP_US                1000
 #define ISPIF_TIMEOUT_ALL_US               1000000
-#define ISPIF_SOF_DEBUG_COUNT                    5
+#define ISPIF_SOF_DEBUG_COUNT                    0
 
 #undef CDBG
 #ifdef CONFIG_MSMB_CAMERA_DEBUG
@@ -66,12 +66,18 @@ static void msm_ispif_io_dump_reg(struct ispif_device *ispif)
 {
 	if (!ispif->enb_dump_reg)
 		return;
+
+	if (!ispif->base) {
+		pr_err("%s: null pointer for the ispif base\n", __func__);
+		return;
+	}
+
 	msm_camera_io_dump(ispif->base, 0x250, 0);
 }
 
 
 static inline int msm_ispif_is_intf_valid(uint32_t csid_version,
-	uint8_t intf_type)
+	enum msm_ispif_vfe_intf intf_type)
 {
 	return ((csid_version <= CSID_VERSION_V22 && intf_type != VFE0) ||
 		(intf_type >= VFE_MAX)) ? false : true;
@@ -432,7 +438,7 @@ static int msm_ispif_reset(struct ispif_device *ispif)
 			ispif->base + ISPIF_VFE_m_INTF_CMD_0(i));
 		msm_camera_io_w(ISPIF_STOP_INTF_IMMEDIATELY,
 			ispif->base + ISPIF_VFE_m_INTF_CMD_1(i));
-		pr_debug("%s: base %lx", __func__, (unsigned long)ispif->base);
+		pr_debug("%s: base %pK", __func__, ispif->base);
 		msm_camera_io_w(0, ispif->base +
 			ISPIF_VFE_m_PIX_INTF_n_CID_MASK(i, 0));
 		msm_camera_io_w(0, ispif->base +
@@ -472,23 +478,23 @@ static void msm_ispif_sel_csid_core(struct ispif_device *ispif,
 	switch (intftype) {
 	case PIX0:
 		data &= ~(BIT(1) | BIT(0));
-		data |= csid;
+		data |= (uint32_t) csid;
 		break;
 	case RDI0:
 		data &= ~(BIT(5) | BIT(4));
-		data |= (csid << 4);
+		data |= ((uint32_t) csid) << 4;
 		break;
 	case PIX1:
 		data &= ~(BIT(9) | BIT(8));
-		data |= (csid << 8);
+		data |= ((uint32_t) csid) << 8;
 		break;
 	case RDI1:
 		data &= ~(BIT(13) | BIT(12));
-		data |= (csid << 12);
+		data |= ((uint32_t) csid) << 12;
 		break;
 	case RDI2:
 		data &= ~(BIT(21) | BIT(20));
-		data |= (csid << 20);
+		data |= ((uint32_t) csid) << 20;
 		break;
 	}
 
@@ -564,9 +570,9 @@ static void msm_ispif_enable_intf_cids(struct ispif_device *ispif,
 
 	data = msm_camera_io_r(ispif->base + intf_addr);
 	if (enable)
-		data |= cid_mask;
+		data |=  (uint32_t) cid_mask;
 	else
-		data &= ~cid_mask;
+		data &= ~((uint32_t) cid_mask);
 	msm_camera_io_w_mb(data, ispif->base + intf_addr);
 }
 
@@ -1276,6 +1282,12 @@ static inline void msm_ispif_read_irq_status(struct ispif_irq_status *out,
 	if (fatal_err == true) {
 		pr_err("%s: fatal error, stop ispif immediately\n", __func__);
 		for (i = 0; i < ispif->vfe_info.num_vfe; i++) {
+			msm_camera_io_w(0x0,
+				ispif->base + ISPIF_VFE_m_IRQ_MASK_0(i));
+			msm_camera_io_w(0x0,
+				ispif->base + ISPIF_VFE_m_IRQ_MASK_1(i));
+			msm_camera_io_w(0x0,
+				ispif->base + ISPIF_VFE_m_IRQ_MASK_2(i));
 			msm_camera_io_w(ISPIF_STOP_INTF_IMMEDIATELY,
 				ispif->base + ISPIF_VFE_m_INTF_CMD_0(i));
 			msm_camera_io_w(ISPIF_STOP_INTF_IMMEDIATELY,
@@ -1295,9 +1307,15 @@ static irqreturn_t msm_io_ispif_irq(int irq_num, void *data)
 static int msm_ispif_set_vfe_info(struct ispif_device *ispif,
 	struct msm_ispif_vfe_info *vfe_info)
 {
-	memcpy(&ispif->vfe_info, vfe_info, sizeof(struct msm_ispif_vfe_info));
-	if (ispif->vfe_info.num_vfe > ispif->hw_num_isps)
+	if (!vfe_info || (vfe_info->num_vfe == 0) ||
+		(vfe_info->num_vfe > ispif->hw_num_isps)) {
+		pr_err("Invalid VFE info: %pK %d\n", vfe_info,
+			   (vfe_info ? vfe_info->num_vfe : 0));
 		return -EINVAL;
+	}
+
+	memcpy(&ispif->vfe_info, vfe_info, sizeof(struct msm_ispif_vfe_info));
+
 	return 0;
 }
 
@@ -1326,7 +1344,7 @@ static int msm_ispif_init(struct ispif_device *ispif,
 
 	if (ispif->csid_version >= CSID_VERSION_V30) {
 		if (!ispif->clk_mux_mem || !ispif->clk_mux_io) {
-			pr_err("%s csi clk mux mem %p io %p\n", __func__,
+			pr_err("%s csi clk mux mem %pK io %pK\n", __func__,
 				ispif->clk_mux_mem, ispif->clk_mux_io);
 			rc = -ENOMEM;
 			return rc;
@@ -1530,7 +1548,7 @@ static long msm_ispif_subdev_fops_ioctl(struct file *file, unsigned int cmd,
 static int ispif_open_node(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 {
 	struct ispif_device *ispif = v4l2_get_subdevdata(sd);
-	int rc;
+	int rc = 0;
 
 	mutex_lock(&ispif->mutex);
 	if (0 == ispif->open_cnt) {
