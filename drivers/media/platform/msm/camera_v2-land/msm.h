@@ -43,7 +43,6 @@
 struct msm_video_device {
 	struct video_device *vdev;
 	atomic_t opened;
-	struct mutex video_drvdata_mutex;
 };
 
 struct msm_queue_head {
