@@ -29,6 +29,7 @@
 #include <linux/regulator/machine.h>
 #include <linux/regulator/of_regulator.h>
 #include <linux/qpnp/power-on.h>
+#include <linux/hardware_info.h>
 
 #define CREATE_MASK(NUM_BITS, POS) \
 	((unsigned char) (((1 << (NUM_BITS)) - 1) << (POS)))
@@ -248,6 +249,7 @@ static const char * const qpnp_pon_reason[] = {
 	[7] = "Triggered from KPD (power key press)",
 };
 
+static struct qpnp_pon *fake_power_pon = NULL;
 #define POFF_REASON_FAULT_OFFSET	16
 #define POFF_REASON_S3_RESET_OFFSET	32
 static const char * const qpnp_poff_reason[] = {
@@ -878,6 +880,18 @@ static irqreturn_t qpnp_kpdpwr_irq(int irq, void *_pon)
 		dev_err(&pon->spmi->dev, "Unable to send input event\n");
 
 	return IRQ_HANDLED;
+}
+
+void qpnp_kpdpwr_simulate(void)
+{
+	int rc;
+
+	if (fake_power_pon == NULL)
+		return;
+
+	rc = qpnp_pon_input_dispatch(fake_power_pon, PON_KPDPWR);
+	if (rc)
+		printk(KERN_WARNING "fake_power_pon Unable to send input event\n");
 }
 
 static irqreturn_t qpnp_kpdpwr_bark_irq(int irq, void *_pon)
@@ -1613,6 +1627,7 @@ static int qpnp_pon_config_init(struct qpnp_pon *pon)
 		}
 
 		rc = qpnp_pon_request_irqs(pon, cfg);
+		fake_power_pon = pon;		
 		if (rc) {
 			dev_err(&pon->spmi->dev, "Unable to request-irq's\n");
 			goto unreg_input_dev;
@@ -1984,6 +1999,29 @@ static int read_gen2_pon_off_reason(struct qpnp_pon *pon, u16 *reason,
 	return 0;
 }
 
+extern char board_id[HARDWARE_MAX_ITEM_LONGTH];
+void probe_board_and_set(void)
+{
+	char *boadrid_start, *boardvol_start;
+	char boardid_info[HARDWARE_MAX_ITEM_LONGTH];
+
+	boadrid_start = strstr(saved_command_line, "board_id=");
+	boardvol_start = strstr(saved_command_line, "board_vol=");
+	memset(boardid_info, 0, HARDWARE_MAX_ITEM_LONGTH);
+	if (boadrid_start != NULL) {
+		boardvol_start = strstr(boadrid_start, ":board_vol=");
+		if (boardvol_start != NULL) {
+			strncpy(boardid_info, boadrid_start+sizeof("board_id=")-1, boardvol_start-(boadrid_start+sizeof("board_id=")-1));
+		} else {
+			strncpy(boardid_info, boadrid_start+sizeof("board_id=")-1, 9);
+		}
+	} else {
+		sprintf(boardid_info, "boarid not define!");
+	}
+
+	strcpy(board_id, boardid_info);
+}
+
 static int qpnp_pon_probe(struct spmi_device *spmi)
 {
 	struct qpnp_pon *pon;
@@ -2351,6 +2389,7 @@ static int qpnp_pon_probe(struct spmi_device *spmi)
 					"qcom,store-hard-reset-reason");
 
 	qpnp_pon_debugfs_init(spmi);
+	probe_board_and_set();	
 	return 0;
 }
 
