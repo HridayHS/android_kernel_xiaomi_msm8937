@@ -462,6 +462,12 @@ config SMB358_CHARGER
 	  The driver reports the charger status via the power supply framework.
 	  A charger status change triggers an IRQ via the device STAT pin.
 
+config A13N_PMI8952
+	bool "to seperate different projects"
+	default n
+	help
+	  Say Y here to enable A13N_PMI8952 macro
+
 config SMB23X_CHARGER
 	tristate "SMB23X Battery Charger"
 	depends on I2C
