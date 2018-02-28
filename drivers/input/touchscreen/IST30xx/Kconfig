@@ -1,6 +1,6 @@
 
 config TOUCHSCREEN_IST30XX
-	tristate "IMAGES IST30XX touchpanel driver"
+	bool "IMAGES IST30XX touchpanel driver"
 	depends on CONFIG_INPUT_TOUCHSCREEN
 	default n
 
