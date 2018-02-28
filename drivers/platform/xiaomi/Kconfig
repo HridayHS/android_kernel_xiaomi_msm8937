@@ -1,0 +1,17 @@
+# Xiaomi configuration options
+
+config MACH_XIAOMI_MSM8940
+	bool "Xiaomi MSM8940"
+	depends on ARCH_MSM8940
+	help
+	  Support for MSM8940 Xiaomi variants
+
+menu "Xiaomi board selection"
+
+config MACH_XIAOMI_SANTONI
+	bool "Santoni board"
+	select MACH_XIAOMI_MSM8940
+	help
+	  Support for Redmi 4/4X
+
+endmenu
