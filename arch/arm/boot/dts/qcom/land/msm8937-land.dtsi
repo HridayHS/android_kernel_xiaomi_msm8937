@@ -1,0 +1,7 @@
+#include "msm-audio-land.dtsi"
+#include "msm8937-camera-land.dtsi"
+#include "msm8937-camera-sensor-qrd-land.dtsi"
+#include "msm8937-display-land.dtsi"
+#include "msm8937-general-land.dtsi"
+#include "msm8937-memory-land.dtsi"
+#include "msm8937-regulator-land.dtsi"
