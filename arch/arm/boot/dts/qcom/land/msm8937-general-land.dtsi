@@ -393,3 +393,11 @@
 &pmi8950_torch0 {
 		qcom,current = <100>;
 };
+
+&firmware {
+	android {
+		fstab {
+			/delete-node/ vendor;
+		};
+	};
+};
